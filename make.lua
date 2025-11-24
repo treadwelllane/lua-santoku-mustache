@@ -1,5 +1,5 @@
 local env = {
-  name = "lua-santoku-mustache",
+  name = "santoku-mustache",
   version = "0.0.1-1",
   license = "MIT",
   public = true,
@@ -22,6 +22,10 @@ local env = {
     }
   }
 }
+
+env.homepage = "https://github.com/treadwelllane/lua-" .. env.name
+env.tarball = env.name .. "-" .. env.version .. ".tar.gz"
+env.download = env.homepage .. "/releases/download/" .. env.version .. "/" .. env.tarball
 
 return {
   type = "lib",
