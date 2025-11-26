@@ -1,11 +1,11 @@
 local env = {
   name = "santoku-mustache",
-  version = "0.0.2-1",
+  version = "0.0.3-1",
   license = "MIT",
   public = true,
   dependencies = {
     "lua >= 5.1",
-    "santoku >= 0.0.294-1",
+    "santoku >= 0.0.297-1",
   },
   cflags = {
     "-I$(shell luarocks show santoku --rock-dir)/include/",
@@ -19,6 +19,12 @@ local env = {
   test = {
     dependencies = {
       "lua-cjson >= 2.1.0.10-1"
+    },
+    wasm = {
+      ldflags = {
+        "-sALLOW_TABLE_GROWTH=1",
+        "-sEMULATE_FUNCTION_POINTER_CASTS=1"
+      }
     }
   }
 }

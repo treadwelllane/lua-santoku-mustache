@@ -1,0 +1,16 @@
+[binaries]
+c = 'emcc'
+cpp = 'em++'
+ar = 'emar'
+ranlib = 'emranlib'
+strip = 'emstrip'
+pkg-config = 'pkg-config'
+
+[built-in options]
+c_args = ['-sALLOW_TABLE_GROWTH=1', '-sEMULATE_FUNCTION_POINTER_CASTS=1']
+
+[host_machine]
+system = 'emscripten'
+cpu_family = 'wasm32'
+cpu = 'wasm32'
+endian = 'little'

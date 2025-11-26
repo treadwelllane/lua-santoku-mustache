@@ -417,6 +417,7 @@ static int tk_mustache_render(lua_State *L) {
       tk_lua_verror(L, 3, "mustache render", "json parse failed", err ? err : "unknown error");
       return 0;
     }
+    fflush(stderr);
     rc = mustach_cJSON_mem(tstr, tlen, root, Mustach_With_AllExtensions, &result, &size);
     cJSON_Delete(root);
   }
@@ -545,6 +546,7 @@ static int tk_mustache_compile(lua_State *L) {
         tk_lua_verror(L, 3, "mustache render", "json parse failed", err ? err : "unknown error");
         return 0;
       }
+      fflush(stderr);
       rc = mustach_cJSON_mem(tstr, tlen, root, Mustach_With_AllExtensions, &result, &size);
       cJSON_Delete(root);
     }

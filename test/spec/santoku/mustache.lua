@@ -15,7 +15,9 @@ test("mustache", function()
     </body>
   ]])
 
-  print(tpl(cjson.encode({ items = { 1, 2, 3 } })))
-  print(tpl({ items = { 1, 2, 3 } }))
+  local t = { items = { 1, 2, 3 } }
+  local jstr = cjson.encode(t)
+  print(tpl(jstr))
+  print(tpl(t))
 
 end)
