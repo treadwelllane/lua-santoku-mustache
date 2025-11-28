@@ -290,6 +290,22 @@ static int lua_mustache_get_partial_hook(const char *name, struct mustach_sbuf *
     return MUSTACH_OK;
   }
 
+  // Handle compiled template functions - extract the dedented template from upvalue
+  if (lua_type(L, -1) == LUA_TFUNCTION) {
+    const char *upvalue = lua_getupvalue(L, -1, 1);
+    if (upvalue != NULL && lua_type(L, -1) == LUA_TSTRING) {
+      size_t len;
+      const char *partial = lua_tolstring(L, -1, &len);
+      sbuf->value = partial;
+      sbuf->length = len;
+      lua_pop(L, 2);
+      return MUSTACH_OK;
+    }
+    if (upvalue != NULL) {
+      lua_pop(L, 1);
+    }
+  }
+
   lua_pop(L, 1);
   return MUSTACH_ERROR_PARTIAL_NOT_FOUND;
 }
@@ -508,9 +524,6 @@ static int tk_mustache_compile(lua_State *L) {
     }
     if (tlen > 0 && tstr[0] == '\n') {
       tstr++;
-      tlen--;
-    }
-    if (tlen > 0 && tstr[tlen-1] == '\n') {
       tlen--;
     }
   }
