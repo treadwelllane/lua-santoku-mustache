@@ -415,7 +415,9 @@ static int tk_mustache_render(lua_State *L) {
   current_partial_context = &hook_ctx;
   mustach_wrap_get_partial = lua_mustache_get_partial_hook;
 
-  if (lua_type(L, 1) == LUA_TTABLE) {
+  int arg_type = lua_type(L, 1);
+  if (arg_type == LUA_TTABLE || arg_type == LUA_TNUMBER ||
+      arg_type == LUA_TBOOLEAN || arg_type == LUA_TNIL) {
     struct lua_mustache_context ctx;
     ctx.L = L;
     ctx.root_idx = 1;
@@ -451,65 +453,24 @@ static int tk_mustache_render(lua_State *L) {
 }
 
 static int tk_mustache_compile(lua_State *L) {
-  int nargs = lua_gettop(L);
   size_t tlen;
   const char *tstr;
   char *dedented = NULL;
   int do_dedent = 1;
-  int short_circuit = 0;
   int partials_idx = 0;
-  int options_idx = 0;
 
-  if (nargs >= 2) {
-    int arg2_type = lua_type(L, 2);
-    if (arg2_type == LUA_TTABLE) {
-      lua_getfield(L, 2, "partials");
-      if (!lua_isnil(L, -1)) {
-        short_circuit = 0;
-        options_idx = 2;
-      } else {
-        lua_pop(L, 1);
-        short_circuit = 1;
-      }
-    } else if (arg2_type == LUA_TSTRING) {
-      short_circuit = 1;
-    } else if (arg2_type == LUA_TBOOLEAN) {
-      do_dedent = lua_toboolean(L, 2);
-    }
-  }
-
-  if (options_idx > 0) {
-    lua_getfield(L, options_idx, "dedent");
+  if (lua_type(L, 2) == LUA_TTABLE) {
+    lua_getfield(L, 2, "dedent");
     if (lua_isboolean(L, -1)) {
       do_dedent = lua_toboolean(L, -1);
     }
     lua_pop(L, 1);
 
-    lua_getfield(L, options_idx, "partials");
+    lua_getfield(L, 2, "partials");
     if (lua_type(L, -1) == LUA_TTABLE) {
       partials_idx = lua_gettop(L);
     } else {
       lua_pop(L, 1);
-    }
-  }
-
-  if (short_circuit && nargs >= 3) {
-    int arg3_type = lua_type(L, 3);
-    if (arg3_type == LUA_TBOOLEAN) {
-      do_dedent = lua_toboolean(L, 3);
-    } else if (arg3_type == LUA_TTABLE) {
-      lua_getfield(L, 3, "dedent");
-      if (lua_isboolean(L, -1)) {
-        do_dedent = lua_toboolean(L, -1);
-      }
-      lua_pop(L, 1);
-
-      lua_getfield(L, 3, "partials");
-      if (lua_type(L, -1) == LUA_TTABLE) {
-        partials_idx = lua_gettop(L);
-      } else {
-        lua_pop(L, 1);
-      }
     }
   }
 
@@ -526,55 +487,6 @@ static int tk_mustache_compile(lua_State *L) {
       tstr++;
       tlen--;
     }
-  }
-
-  if (short_circuit) {
-    char *result = NULL;
-    size_t size = 0;
-    int rc;
-
-    int (*old_hook)(const char*, struct mustach_sbuf*) = mustach_wrap_get_partial;
-    struct lua_mustache_context hook_ctx;
-    hook_ctx.L = L;
-    hook_ctx.partials_idx = partials_idx;
-    current_partial_context = &hook_ctx;
-    mustach_wrap_get_partial = lua_mustache_get_partial_hook;
-
-    if (lua_type(L, 2) == LUA_TTABLE) {
-      struct lua_mustache_context ctx;
-      ctx.L = L;
-      ctx.root_idx = 2;
-      ctx.partials_idx = partials_idx;
-      current_partial_context = &ctx;
-      rc = mustach_wrap_mem(tstr, tlen, &lua_mustache_itf, &ctx, Mustach_With_AllExtensions, &result, &size);
-    } else {
-      size_t jlen;
-      const char *jstr = tk_lua_checklstring(L, 2, &jlen, "json string");
-      cJSON *root = cJSON_Parse(jstr);
-      if (!root) {
-        mustach_wrap_get_partial = old_hook;
-        current_partial_context = NULL;
-        if (dedented) free(dedented);
-        const char *err = cJSON_GetErrorPtr();
-        tk_lua_verror(L, 3, "mustache render", "json parse failed", err ? err : "unknown error");
-        return 0;
-      }
-      fflush(stderr);
-      rc = mustach_cJSON_mem(tstr, tlen, root, Mustach_With_AllExtensions, &result, &size);
-      cJSON_Delete(root);
-    }
-
-    mustach_wrap_get_partial = old_hook;
-    current_partial_context = NULL;
-
-    if (dedented) free(dedented);
-    if (rc != 0) {
-      tk_lua_verror(L, 3, "mustache render", "render failed", "error code: %d", rc);
-      return 0;
-    }
-    lua_pushlstring(L, result, size);
-    free(result);
-    return 1;
   }
 
   if (dedented) {
