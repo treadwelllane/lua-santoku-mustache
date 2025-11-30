@@ -16,6 +16,6 @@ results.mk:
 	if [ -d mustach-1.2.10 ]; then rm -rf mustach-1.2.10; fi
 	tar xf mustach-1.2.10.tar.gz
 	ln -sv ../cJSON-1.7.19/install mustach-1.2.10/install
-	cd mustach-1.2.10 && PKG_CONFIG_PATH=$(PWD)/deps/mustach/cJSON-1.7.19/install/lib/pkgconfig meson setup build --prefix=$(PWD)/deps/mustach/cJSON-1.7.19/install --default-library=static -Dtool=none -Dcjson=enabled -Djsonc=disabled -Djansson=disabled $(CROSS_FILE)
+	cd mustach-1.2.10 && PKG_CONFIG_PATH=$(PWD)/deps/mustach/cJSON-1.7.19/install/lib/pkgconfig meson setup build --prefix=$(PWD)/deps/mustach/cJSON-1.7.19/install --default-library=static $(CROSS_FILE)
 	cd mustach-1.2.10 && ninja -C build libmustach-cjson.a libmustach.a libmustach-core.a
 	touch results.mk
