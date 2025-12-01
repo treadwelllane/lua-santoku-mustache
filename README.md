@@ -8,33 +8,30 @@ Mustache template renderer with all extensions enabled.
 local mustache = require("santoku.mustache")
 ```
 
-The module returns a **single function** with multiple calling conventions:
-
-### Compile Mode (Returns Closure)
+The module returns a **single function** that compiles templates:
 
 ```lua
 render = mustache(template) -- dedent=true
-render = mustache(template, false) -- dedent=false
-render = mustache(template, { partials= { ... } }) -- with options
+render = mustache(template, { dedent = false }) -- dedent=false
+render = mustache(template, { partials = { ... } }) -- with partials
 result = render(data)
-```
-
-### Short-Circuit Mode (Renders Immediately)
-
-```lua
-result = mustache(template, data) -- dedent=true
-result = mustache(template, data, false) -- dedent=false
-result = mustache(template, data, { partials= { ... } })
 ```
 
 ## Parameters
 
+### Compile: `mustache(template [, opts])`
+
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
 | `template` | `string` | required | Mustache template |
-| `data` | `table` or `string` | - | Context (Lua table or JSON) |
-| `dedent` | `boolean` | `true` | Strip leading whitespace |
-| `opts` | `table` | `{}` | Options: `{ dedent=bool, partials=table }` |
+| `opts.dedent` | `boolean` | `true` | Strip leading whitespace |
+| `opts.partials` | `table` | `nil` | Partial templates (string or compiled) |
+
+### Render: `render(data)`
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `data` | `table` or `string` | Context (Lua table or JSON string) |
 
 ## Features
 
@@ -50,7 +47,7 @@ result = mustache(template, data, { partials= { ... } })
 ### Basic Usage
 
 ```lua
-mustache("Hello {{name}}", {name = "World"})
+mustache("Hello {{name}}")({name = "World"})
 --> "Hello World"
 ```
 
@@ -61,16 +58,16 @@ mustache([[
   <div>
     {{content}}
   </div>
-]], {content = "Hi"})
+]])({content = "Hi"})
 --> "<div>\n  Hi\n</div>"
 ```
 
 ### Partials
 
 ```lua
-mustache("{{> header}}\n{{body}}", {body = "text"}, {
+mustache("{{> header}}\n{{body}}", {
   partials = {header = "<h1>Title</h1>"}
-})
+})({body = "text"})
 --> "<h1>Title</h1>\ntext"
 ```
 
@@ -89,7 +86,7 @@ mustache([[
   {{#users}}
     - {{name}}
   {{/users}}
-]], {
+]])({
   users = {
     {name = "Alice"},
     {name = "Bob"}
@@ -101,10 +98,10 @@ mustache([[
 ### Conditionals
 
 ```lua
-mustache("{{#show}}Visible{{/show}}{{^show}}Hidden{{/show}}", {show = true})
+mustache("{{#show}}Visible{{/show}}{{^show}}Hidden{{/show}}")({show = true})
 --> "Visible"
 
-mustache("{{#show}}Visible{{/show}}{{^show}}Hidden{{/show}}", {show = false})
+mustache("{{#show}}Visible{{/show}}{{^show}}Hidden{{/show}}")({show = false})
 --> "Hidden"
 ```
 
@@ -115,7 +112,7 @@ mustache([[
   {{#data.*}}
     {{*}}: {{.}}
   {{/data.*}}
-]], {
+]])({
   data = {name = "Alice", age = 30}
 })
 --> "  name: Alice\n  age: 30"
@@ -124,10 +121,10 @@ mustache([[
 ### Comparisons (Extension)
 
 ```lua
-mustache("{{#age>18}}Adult{{/age>18}}", {age = 25})
+mustache("{{#age>18}}Adult{{/age>18}}")({age = 25})
 --> "Adult"
 
-mustache("{{#price<=100}}Affordable{{/price<=100}}", {price = 50})
+mustache("{{#price<=100}}Affordable{{/price<=100}}")({price = 50})
 --> "Affordable"
 ```
 
