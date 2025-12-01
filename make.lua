@@ -1,6 +1,6 @@
 local env = {
   name = "santoku-mustache",
-  version = "0.0.9-1",
+  version = "0.0.10-1",
   license = "MIT",
   public = true,
   dependencies = {
@@ -14,7 +14,7 @@ local env = {
   },
   ldflags = {
     "$(PWD)/deps/mustach/cJSON-1.7.19/libcjson.a",
-    "$(PWD)/deps/mustach/mustach-1.2.10/build/libmustach.a"
+    "$(PWD)/deps/mustach/mustach-1.2.10/libmustach.a"
   },
   test = {
     dependencies = {
