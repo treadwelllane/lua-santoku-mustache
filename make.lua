@@ -1,6 +1,6 @@
 local env = {
   name = "santoku-mustache",
-  version = "0.0.11-1",
+  version = "0.0.12-1",
   license = "MIT",
   public = true,
   dependencies = {
