@@ -23,8 +23,11 @@ struct lua_mustache_context {
     int array_len;
     int is_objiter;
     int key_idx;
+    int prev_selection_base;
   } stack[MUSTACH_MAX_DEPTH];
   int selection_idx;
+  int base_top;
+  int selection_base;
   char numbuf[64];
   char keybuf[64];
 };
@@ -75,6 +78,9 @@ static int is_truthy(lua_State *L, int idx) {
 
 static int lua_mustache_start(void *closure) {
   struct lua_mustache_context *ctx = closure;
+  lua_State *L = ctx->L;
+  ctx->base_top = lua_gettop(L);
+  ctx->selection_base = ctx->base_top;
   ctx->depth = 0;
   ctx->stack[0].obj_idx = ctx->root_idx;
   ctx->stack[0].is_array = 0;
@@ -106,6 +112,7 @@ static int lua_mustache_compare(void *closure, const char *value) {
 static int lua_mustache_sel(void *closure, const char *name) {
   struct lua_mustache_context *ctx = closure;
   lua_State *L = ctx->L;
+  lua_settop(L, ctx->selection_base);
   if (name == NULL) {
     ctx->selection_idx = ctx->stack[ctx->depth].obj_idx;
     return 1;
@@ -153,6 +160,7 @@ static int lua_mustache_enter(void *closure, int objiter) {
   ctx->stack[ctx->depth].is_objiter = 0;
   ctx->stack[ctx->depth].is_array = 0;
   ctx->stack[ctx->depth].cont_idx = 0;
+  ctx->stack[ctx->depth].prev_selection_base = ctx->selection_base;
   if (objiter) {
     if (type != LUA_TTABLE) goto not_entering;
     lua_pushnil(L);
@@ -164,6 +172,7 @@ static int lua_mustache_enter(void *closure, int objiter) {
     ctx->stack[ctx->depth].is_objiter = 1;
     ctx->stack[ctx->depth].key_idx = lua_gettop(L) - 1;
     ctx->stack[ctx->depth].obj_idx = lua_gettop(L);
+    ctx->selection_base = lua_gettop(L);
     return 1;
   }
   if (type == LUA_TTABLE) {
@@ -175,17 +184,22 @@ static int lua_mustache_enter(void *closure, int objiter) {
       ctx->stack[ctx->depth].is_array = 1;
       ctx->stack[ctx->depth].array_len = len;
       ctx->stack[ctx->depth].iter_idx = 1;
+      ctx->selection_base = lua_gettop(L);
       return 1;
     }
     lua_pushnil(L);
     int has = lua_next(L, sel_idx);
     if (has) lua_pop(L, 2);
     if (!has) goto not_entering;
-    ctx->stack[ctx->depth].obj_idx = sel_idx;
+    lua_pushvalue(L, sel_idx);
+    ctx->stack[ctx->depth].obj_idx = lua_gettop(L);
+    ctx->selection_base = lua_gettop(L);
     return 1;
   }
   if (is_truthy(L, sel_idx)) {
-    ctx->stack[ctx->depth].obj_idx = sel_idx;
+    lua_pushvalue(L, sel_idx);
+    ctx->stack[ctx->depth].obj_idx = lua_gettop(L);
+    ctx->selection_base = lua_gettop(L);
     return 1;
   }
 not_entering:
@@ -202,15 +216,19 @@ static int lua_mustache_next(void *closure) {
     int iter = ++ctx->stack[ctx->depth].iter_idx;
     if (iter > ctx->stack[ctx->depth].array_len)
       return 0;
+    lua_settop(L, ctx->stack[ctx->depth].cont_idx);
     lua_rawgeti(L, ctx->stack[ctx->depth].cont_idx, iter);
     ctx->stack[ctx->depth].obj_idx = lua_gettop(L);
+    ctx->selection_base = lua_gettop(L);
     return 1;
   }
   if (ctx->stack[ctx->depth].is_objiter) {
+    lua_settop(L, ctx->stack[ctx->depth].key_idx);
     if (!lua_next(L, ctx->stack[ctx->depth].cont_idx))
       return 0;
     ctx->stack[ctx->depth].key_idx = lua_gettop(L) - 1;
     ctx->stack[ctx->depth].obj_idx = lua_gettop(L);
+    ctx->selection_base = lua_gettop(L);
     return 1;
   }
   return 0;
@@ -218,8 +236,11 @@ static int lua_mustache_next(void *closure) {
 
 static int lua_mustache_leave(void *closure) {
   struct lua_mustache_context *ctx = closure;
+  lua_State *L = ctx->L;
   if (ctx->depth <= 0)
     return MUSTACH_ERROR_CLOSING;
+  lua_settop(L, ctx->stack[ctx->depth].prev_selection_base);
+  ctx->selection_base = ctx->stack[ctx->depth].prev_selection_base;
   ctx->depth--;
   return MUSTACH_OK;
 }
@@ -310,9 +331,15 @@ static int lua_mustache_get_partial_hook(const char *name, struct mustach_sbuf *
   return MUSTACH_ERROR_PARTIAL_NOT_FOUND;
 }
 
+static void lua_mustache_stop(void *closure, int status) {
+  (void)status;
+  struct lua_mustache_context *ctx = closure;
+  lua_settop(ctx->L, ctx->base_top);
+}
+
 static const struct mustach_wrap_itf lua_mustache_itf = {
   .start = lua_mustache_start,
-  .stop = NULL,
+  .stop = lua_mustache_stop,
   .compare = lua_mustache_compare,
   .sel = lua_mustache_sel,
   .subsel = lua_mustache_subsel,
