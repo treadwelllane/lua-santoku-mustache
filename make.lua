@@ -1,49 +1,38 @@
-local arr = require("santoku.array")
-local fs = require("santoku.fs")
-local err = require("santoku.error")
-local env = require("santoku.env")
-local str = require("santoku.string")
-local sys = require("santoku.system")
-local base = fs.runfile("make.common.lua")
-local ld_preload = env.var("LD_PRELOAD", nil)
-local asan = sys.sh({ "sh", "-c", str.format([[
-  %s -fsanitize=address -xc /dev/null -### 2>&1 | grep -o '"[^"]*asan[^"]*\.so[^"]*"' | head -1 | tr -d '"'
-]], env.var("CC", "clang")) })()
-local ok
-if not asan or asan == "" then
-  local cc = env.var("CC", "clang")
-  local arch = sys.sh({ "uname", "-m" })()
-  ok, asan = pcall(function ()
-    return sys.sh({ "sh", "-c", str.format([[
-      resdir=$(%s -print-resource-dir 2>/dev/null) && find "$resdir" -name 'libclang_rt.asan*%s*.so' -o -name 'libasan.*.so' 2>/dev/null | head -1 || \
-      libdir=$(%s -print-file-name=libasan.so 2>/dev/null) && [ -f "$libdir" ] && echo "$libdir"
-    ]], cc, arch, cc) })()
-  end)
-end
-err.assert(ok and asan and asan ~= "", "Couldn't determine asan lib to preload")
-if ld_preload then
-  ld_preload = ld_preload .. ":" .. asan
-else
-  ld_preload = asan
-end
-local symbolizer = sys.sh({ "sh", "-c", "command -v llvm-symbolizer 2>/dev/null || command -v llvm-symbolizer-10 2>/dev/null || true" })()
-local symbolizer_opt = ""
-if symbolizer and symbolizer ~= "" and not symbolizer:match("^%-") then
-  symbolizer_opt = ":external_symbolizer_path=" .. symbolizer
-end
-local asan_options = env.var("ASAN_OPTIONS", "fast_unwind_on_malloc=0:malloc_context_size=30:detect_stack_use_after_return=1:strict_string_checks=1:halt_on_error=0:symbolize=1" .. symbolizer_opt)
-local ubsan_options = env.var("UBSAN_OPTIONS", "print_stacktrace=1:halt_on_error=1")
-base.env.test.env_vars = {
-  ASAN_OPTIONS = asan_options,
-  UBSAN_OPTIONS = ubsan_options,
-  LD_PRELOAD = ld_preload
+local env = {
+  name = "santoku-mustache",
+  version = "0.0.11-1",
+  license = "MIT",
+  public = true,
+  dependencies = {
+    "lua >= 5.1",
+    "santoku >= 0.0.297-1",
+  },
+  cflags = {
+    "-I$(shell luarocks show santoku --rock-dir)/include/",
+    "-I$(PWD)/deps/mustach/cJSON-1.7.19/install/include",
+    "-I$(PWD)/deps/mustach/mustach-1.2.10/",
+  },
+  ldflags = {
+    "$(PWD)/deps/mustach/cJSON-1.7.19/libcjson.a",
+    "$(PWD)/deps/mustach/mustach-1.2.10/libmustach.a"
+  },
+  test = {
+    dependencies = {
+      "lua-cjson >= 2.1.0.10-1"
+    },
+    wasm = {
+      ldflags = {
+        "-sALLOW_TABLE_GROWTH=1",
+        "-sEMULATE_FUNCTION_POINTER_CASTS=1"
+      }
+    }
+  }
 }
-base.env.cflags = arr.extend({
-  "-fsanitize=address,undefined", "-fno-sanitize-recover=undefined",
-  "-g3", "-O0", "-fno-inline", "-fno-omit-frame-pointer",
-}, base.env.cflags)
-base.env.ldflags = arr.extend({
-  "-fsanitize=address,undefined",
-  "-g3", "-O0"
-}, base.env.ldflags)
-return base
+
+env.homepage = "https://github.com/treadwelllane/lua-" .. env.name
+env.tarball = env.name .. "-" .. env.version .. ".tar.gz"
+env.download = env.homepage .. "/releases/download/" .. env.version .. "/" .. env.tarball
+
+return {
+  env = env,
+}
