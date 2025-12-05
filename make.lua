@@ -1,11 +1,11 @@
 local env = {
   name = "santoku-mustache",
-  version = "0.0.12-1",
+  version = "0.0.13-1",
   license = "MIT",
   public = true,
   dependencies = {
     "lua >= 5.1",
-    "santoku >= 0.0.297-1",
+    "santoku >= 0.0.303-1",
   },
   cflags = {
     "-I$(shell luarocks show santoku --rock-dir)/include/",
