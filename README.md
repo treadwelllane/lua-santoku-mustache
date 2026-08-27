@@ -39,12 +39,7 @@ documentation.
 
 MIT, see [LICENSE](LICENSE).
 
-## Anchor spec
-
-Reproduced verbatim from
-[`test/spec/santoku/readme_anchor.lua`](test/spec/santoku/readme_anchor.lua), and kept in
-sync by [`test/spec/santoku/readme.lua`](test/spec/santoku/readme.lua), which fails the
-build if the two ever diverge.
+## More examples
 
 ```lua
 local test = require("santoku.test")
