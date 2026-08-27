@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://santoku.dev/logo.png" width="96" height="96" alt="santoku">
+  <img src="https://santoku.dev/logo-santoku-mustache.png" height="64" alt="santoku-mustache">
 </p>
 
 # santoku-mustache
