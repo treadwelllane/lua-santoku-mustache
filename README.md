@@ -28,6 +28,9 @@ print(render({ greeting = "hello", target = "world" }))
 
 Runnable examples and the full API: [santoku.dev](https://santoku.dev/#santoku-mustache).
 
+For agents and LLM tooling: [llms.txt](https://santoku.dev/llms.txt) for the index,
+[llms-full.txt](https://santoku.dev/llms-full.txt) for every documented example.
+
 ## Tests
 
 The tests are the spec. For the exhaustive case list, read them:
